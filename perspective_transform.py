@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import glob
+from constants import scale_y_warped
 
 src = np.float32([[253, 685], [1050, 685], [610, 440], [667, 440]])
 dst = np.float32([[253, 685], [1050, 685], [253, 0], [1050, 0]])
@@ -11,10 +12,10 @@ class PerspectiveWarper:
         self.Minv = cv2.getPerspectiveTransform(dst, src)
         
     def transform(self, img):
-        return cv2.warpPerspective(img, self.M, (img.shape[1], img.shape[0]))
+        return cv2.warpPerspective(img, self.M, (img.shape[1], img.shape[0] * scale_y_warped))
     
     def inv_transform(self, img):
-        return cv2.warpPerspective(img, self.Minv, (img.shape[1], img.shape[0]))
+        return cv2.warpPerspective(img, self.Minv, (img.shape[1], img.shape[0] // scale_y_warped))
 
 
 if __name__ == '__main__':
