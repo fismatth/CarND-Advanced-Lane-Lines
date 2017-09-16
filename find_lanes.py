@@ -22,8 +22,8 @@ def get_binary(channel, color_thresh, grad_thresh):
     color_binary[(channel >= color_thresh[0]) & (channel <= color_thresh[1])] = 1
     return color_binary, grad_binary
     
-def get_potential_lane_pixels(img, s_thresh=(170, 255), sx_thresh=(30, 100), l_thresh=(150, 255), lx_thresh=(100, 255)):
-    # Convert to HLS color space and separate the V channel
+def get_potential_lane_pixels(img, s_thresh=(170, 255), sx_thresh=(30, 100), l_thresh=(200, 255), lx_thresh=(200, 255)):
+    # Convert to HLS color space
     hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS).astype(np.float)
     l_channel = hls[:,:,1]
     s_channel = hls[:,:,2]
@@ -32,7 +32,7 @@ def get_potential_lane_pixels(img, s_thresh=(170, 255), sx_thresh=(30, 100), l_t
     #return color_binary
     result = np.zeros_like(s_channel)
     result[(s_binary == 1) | (sx_binary == 1) | (l_binary == 1) | (lx_binary == 1)] = 1
-    #result[dir_binary == 1] = 1
+    #result[(l_binary == 1) | (lx_binary == 1)] = 1
     return result
 
 class SlidingWindowSearch:
@@ -220,8 +220,10 @@ class SlidingWindowSearch:
         right_line = np.array([np.flipud(np.transpose(np.vstack([right_fitx, ploty])))])
         lane_pts = np.hstack((left_line, right_line))
         
-        lane_overlay = self.visualize_fit(False)
-        cv2.fillPoly(lane_overlay, np.int_([lane_pts]), (0, 255, 0))
+        lane_pixels = self.visualize_fit(False)
+        lane_area = np.zeros_like(lane_pixels)
+        cv2.fillPoly(lane_area, np.int_([lane_pts]), (0, 255, 0))
+        lane_overlay = cv2.addWeighted(lane_pixels, 0.5, lane_area, 0.5, 0)
         
         left_curvature, right_curvature, offset = self.get_curvature_offset(ploty, left_fitx, right_fitx)
         

@@ -1,10 +1,10 @@
 import cv2
 import numpy as np
 import glob
-from constants import scale_y_warped
+from constants import scale_y_warped, src, dst
 
-src = np.float32([[253, 685], [1050, 685], [610, 440], [667, 440]])
-dst = np.float32([[253, 685], [1050, 685], [253, 0], [1050, 0]])
+#src = np.float32([[253, 685], [1050, 685], [610, 440], [667, 440]])
+#dst = np.float32([[253, 685], [1050, 685], [253, 0], [1050, 0]])
 
 class PerspectiveWarper:
     def __init__(self, src, dst):
@@ -20,7 +20,7 @@ class PerspectiveWarper:
 
 if __name__ == '__main__':
     persp_warper= PerspectiveWarper(src, dst)
-    images = glob.glob('test_images/test*.jpg')
+    images = glob.glob('test_images/straight_lines*.jpg')
     for fname in images:
         img = cv2.imread(fname)
         warped_img = persp_warper.transform(img)

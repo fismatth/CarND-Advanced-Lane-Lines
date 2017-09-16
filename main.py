@@ -13,7 +13,7 @@ perspective_warper = PerspectiveWarper(src, dst)
 
 def process_image(img):
     undistorted = undistorter(img)
-    binary_img = get_potential_lane_pixels(img)
+    binary_img = get_potential_lane_pixels(undistorted)
     #return np.array(cv2.merge((binary_img, binary_img, binary_img)),np.uint8) * 255
     #return cv2.addWeighted(undistorted, 1, , 0.3, 0)
     binary_warped = perspective_warper.transform(binary_img)
