@@ -17,14 +17,14 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./camera_cal/calibration1.png "Distorted"
-[image2]: ./output_images/undistorted/calibration1.png "Undistorted"
+[image1]: ./camera_cal/calibration1.jpg "Distorted"
+[image2]: ./output_images/undistorted/calibration1.jpg "Undistorted"
 [image3]: ./test_images/test1.jpg "Straight lines input image"
 [image4]: ./output_images/undistorted.jpg "Undistorted"
 [image5]: ./output_images/lane_overlay.jpg "Undistorted image with lane overlay"
 [image9]: ./output_images/straight_lines1_srcpoints.jpg "Image with source points"
 [image10]: ./output_images/straight_lines1_warped.jpg "Warped image with source points"
-[image11]: ./output_images/lane_fit.jpg "Lane pixels with sliding windows and polynomial fit"
+[image11]: ./output_images/lane_fit.png "Lane pixels with sliding windows and polynomial fit"
 [video1]: ./project_video_annotated.mp4 "Potential lane pixels"
 [video2]: ./project_video_annotated.mp4 "Potential lane pixels warped"
 [video3]: ./project_video_annotated.mp4 "Warped lane area and matched lane pixels"
