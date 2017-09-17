@@ -40,8 +40,8 @@ The goals / steps of this project are the following:
 
 #### 1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
 
-The code to compute the camera calibration is contained in "./camera_calibration.py". 
-The Undistort class initially computes the undistortion coefficients (function compute_undistortion_coeffs) and saves them to "./calibration.p" - if this file is already there, the class only loads the stored coefficients.
+The code to compute the camera calibration is contained in [camera_calibration.py]("./camera_calibration.py"). 
+The Undistort class initially computes the undistortion coefficients (function compute_undistortion_coeffs) and saves them to [calibration.p]("./calibration.p") - if this file is already there, the class only loads the stored coefficients.
 To compute the undistortion coefficients, I do the following steps:
 
 I start by preparing "object points", which will be the (x, y, z) coordinates of the chessboard corners in the world. Here I am assuming the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image.  
@@ -71,17 +71,15 @@ Applying the distortion correction as describe before, the resulting image looks
 
 #### 2. Creating binary image using color and gradient thresholds
 
-In "./find_lane_lines.py", function get_potential_lane_pixels(), I'm first converting the image to HLS color space. Then I apply color and gradient thresholds to the L and S channel and combine the resulting four binary images.
+In [find_lane_lines.py]("./find_lane_lines.py"), function get_potential_lane_pixels(), I'm first converting the image to HLS color space. Then I apply color and gradient thresholds to the L and S channel and combine the resulting four binary images.
 For the test image, this is the result:
-
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
 
 ![alt text][image4]
 
 #### 3. Perspective transform
 
-To perform the perspective transform of an image, I use the PerspectiveWarper class in "./perspective_transform.py". 
-The source and destination points are defined in "./constants.py":
+To perform the perspective transform of an image, I use the PerspectiveWarper class in [perspective_transform.py]("./perspective_transform.py"). 
+The source and destination points are defined in [constants.py]("./constants.py"):
 
 ```python
 # scaling factor for #pixels in y direction
@@ -109,7 +107,7 @@ I verified that my perspective transform was working as expected by drawing the 
 
 #### 4. Identifying lane pixels and fit polynomial
 
-The previously compute binary image is warped as described before. To search for lane pixels and fit a polynomial, the LaneSearcher class in "./find_lanes.py" is used.
+The previously compute binary image is warped as described before. To search for lane pixels and fit a polynomial, the LaneSearcher class in [find_lanes.py]("./find_lanes.py") is used.
 To get an initial fit, a sliding window search is used as in the lecture. To fit a polynomial to the left and right lane pixels, np.polyfit is used.
 When we already have a fit, the area around the polynomials is used to search for lane pixels, which are then again used to fit a new polynomial.
 As a consistency check for the identified lanes, I test if the polynomials are almost parallel.
@@ -124,15 +122,15 @@ The identified lane pixels with the sliding windows and fitted polynomials are v
 
 #### 5. Calculating radius of curvature and offset to center
 
-The radius of curvature and offset to the center is computed in "./find_lanes.py", function get_curvature_offset(). 
+The radius of curvature and offset to the center is computed in [find_lanes.py]("./find_lanes.py"), function get_curvature_offset(). 
 For the radius of curvature, I map the fitted polynomials into world space and evaluate the curvature at the bottom of the image using the formula provided in the lecture.
 To compute the offset from the lane center, I'm computing the midpoint of the lane by taking the mean of the fitted left/right polynomial evaluated again at the bottom of the image.
 Then, assuming the center of the image in x-direction is the center of the car, the difference of the center and previously computed car position scaled by approximated meters per pixel (3.7/700) gives the required offset in meters.
 
 #### 6. Map lanes back to original image
 
-A (warped) lane overlay image is computed in "./find_lanes.py", function get_lane_overlay(), which visualizes the lane area and identified left and right lane pixels. 
-To map this image back to the original perspective, the inv_transform() function of the PerspectiveWarper class is used (in "./perspective_transform.py").
+A (warped) lane overlay image is computed in [find_lanes.py]("./find_lanes.py"), function get_lane_overlay(), which visualizes the lane area and identified left and right lane pixels. 
+To map this image back to the original perspective, the inv_transform() function of the PerspectiveWarper class is used (in [perspective_transform.py]("./perspective_transform.py")).
 For the example image, the result looks like this:
 
 ![alt text][image5]
