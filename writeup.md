@@ -72,7 +72,7 @@ Applying the distortion correction as describe before, the resulting image looks
 
 #### 2. Creating binary image using color and gradient thresholds
 
-In [find_lane_lines.py](find_lane_lines.py), function get_potential_lane_pixels(), I'm first converting the image to HLS color space. Then I apply color and gradient thresholds to the L and S channel and combine the resulting four binary images.
+In [find_lanes.py](find_lanes.py), function get_potential_lane_pixels(), I'm first converting the image to HLS color space. Then I apply color and gradient thresholds to the L and S channel and combine the resulting four binary images.
 For the test image, this is the result:
 
 ![alt text][image6]
@@ -167,7 +167,7 @@ Here's the [final video result](./project_video_annotated.mp4)
 
 An issue that is clearly visible in the [binary video](./project_video_binary_annotated.mp4), is that sometimes a lot of non-lane pixels on or directly next to the road are identified as potential lane pixels (e.g. at 0:41 in the video). Some possible improvements could be:
 * Tune thresholding parameters
-* Don't use channels/ corresponding binary images that have too much potential lane pixels
+* Don't use channels/ corresponding binary images that have too many potential lane pixels
 * Filter gradients by direction
 
 ---
@@ -179,6 +179,6 @@ Another issue that can be seen in the [warped binary video ](./project_video_bin
 Another issue visible in the [warped lane overlay video](./project_video_lane_overlay_warped_annotated.mp4) is that the polynomials are not always nearly parallel/ the width is not everywhere the same. 
 To improve this, we could try the following steps:
 * Estimate lane center line using left/right lane polynomial
-* Estimate width (averaging)
+* Estimate width (average width in identified lane area)
 * Generate lane pixels around lane center line, move them left and right according to estimated width (add them to the binary image)
 * Re-fit left/right lane polynomials as before
