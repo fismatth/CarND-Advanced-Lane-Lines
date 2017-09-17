@@ -149,14 +149,6 @@ class LaneSearcher:
         
         # fit polynomial and check if left/right lane are almost parallel
         if self.fit_polynomial() and self.almost_parallel(self.left_fit, self.right_fit):
-            # compute mean coefficients for polynomials of left and right lane ...
-            a = 0.5 * (self.left_fit[0] + self.right_fit[0])
-            b = 0.5 * (self.left_fit[1] + self.right_fit[1])
-            # ... use them to make lanes "more parallel"
-            self.left_fit[0] = 0.5 * (self.left_fit[0] + a)
-            self.left_fit[1] = 0.5 * (self.left_fit[1] + b)
-            self.right_fit[0] = 0.5 * (self.right_fit[0] + a)
-            self.right_fit[1] = 0.5 * (self.right_fit[1] + b)
             self.append_history()
             self.state = 'initial_fit'
 
