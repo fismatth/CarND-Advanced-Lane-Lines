@@ -5,12 +5,13 @@ import glob
 import cv2
 import collections
 from perspective_transform import PerspectiveWarper
-from constants import src, dst, scale_y_warped
+from constants import warp_src, warp_dst, scale_y_warped
 from numpy import sign
+from camera_calibration import Undistort
 
-
+# get binary images using given thresholds for color and gradient for given channel
 def get_binary(channel, color_thresh, grad_thresh):
-    # Sobel x
+    # Apply Sobel in x direction
     sobelx = cv2.Sobel(channel, cv2.CV_64F, 1, 0) # Take the derivative in x
     abs_sobelx = np.absolute(sobelx) # Absolute x derivative to accentuate lines away from horizontal
     scaled_sobel = np.uint8(255*abs_sobelx/np.max(abs_sobelx))
@@ -21,7 +22,8 @@ def get_binary(channel, color_thresh, grad_thresh):
     color_binary = np.zeros_like(channel)
     color_binary[(channel >= color_thresh[0]) & (channel <= color_thresh[1])] = 1
     return color_binary, grad_binary
-    
+
+# identify potential lane pixels of given image using thresholding for l and s channel
 def get_potential_lane_pixels(img, s_thresh=(170, 255), sx_thresh=(30, 100), l_thresh=(200, 255), lx_thresh=(200, 255)):
     # Convert to HLS color space
     hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS).astype(np.float)
@@ -29,25 +31,29 @@ def get_potential_lane_pixels(img, s_thresh=(170, 255), sx_thresh=(30, 100), l_t
     s_channel = hls[:,:,2]
     l_binary, lx_binary = get_binary(l_channel, l_thresh, lx_thresh)
     s_binary, sx_binary = get_binary(s_channel, s_thresh, sx_thresh)
-    #return color_binary
     result = np.zeros_like(s_channel)
+    # merge binary images for l, s channel and color, gradient thresholding
     result[(s_binary == 1) | (sx_binary == 1) | (l_binary == 1) | (lx_binary == 1)] = 1
-    #result[(l_binary == 1) | (lx_binary == 1)] = 1
     return result
 
-class SlidingWindowSearch:
+# Class to search for lanes in a binary warped image
+class LaneSearcher:
     def __init__(self):
         # current frame
         self.binary_warped = None
         # polynomial fit of lanes
         self.left_fit = None
         self.right_fit = None
+        # store at most last 10 fits
         self.left_fit_history = collections.deque(maxlen=10)
         self.right_fit_history = collections.deque(maxlen=10)
+        # non-zero pixels
         self.nonzeroy = None
         self.nonzerox = None
+        # identified indices for left/right lane
         self.left_lane_inds = None
         self.right_lane_inds = None
+        # sliding windows for initial fit (stored only for visualization purposes)
         self.sliding_windows = None
         # Set the width of the windows +/- margin
         self.margin = 75
@@ -55,6 +61,7 @@ class SlidingWindowSearch:
         self.nwindows = 9
         # Set minimum number of pixels found to recenter window
         self.minpix = 50
+        # The current state (in ['no_fit', 'initial_fit', 'successive_fit']
         self.state = 'no_fit'
         
     def init_nonzero(self):
@@ -64,11 +71,9 @@ class SlidingWindowSearch:
         self.nonzerox = np.array(nonzero[1])
         
     def almost_parallel(self, poly_fit1, poly_fit2):
+        # check if two lanes are almost parallel
         sign_check = np.sign(poly_fit1[0]) == np.sign(poly_fit2[0]) or (abs(poly_fit1[0]) < 1e-3 and abs(poly_fit2[0] < 1e-3)) 
         return sign_check and abs(poly_fit1[0] - poly_fit2[0]) < 1e-3 and abs(poly_fit1[1] - poly_fit2[1]) < 30.0
-    
-    def almost_equal(self, poly_fit1, poly_fit2):
-        return self.almost_parallel(poly_fit1, poly_fit2) and (abs(poly_fit1[2] - poly_fit2[2])) < 50.0
         
     def fit_polynomial(self):
         # Extract left and right line pixel positions
@@ -76,7 +81,6 @@ class SlidingWindowSearch:
         lefty = self.nonzeroy[self.left_lane_inds]
         rightx = self.nonzerox[self.right_lane_inds]
         righty = self.nonzeroy[self.right_lane_inds]
-        
         try:
             # Fit a second order polynomial to each
             self.left_fit = np.polyfit(lefty, leftx, 2)
@@ -86,6 +90,7 @@ class SlidingWindowSearch:
         return True
         
     def append_history(self):
+        # append the history with the current fit
         self.left_fit_history.append(self.left_fit)
         self.right_fit_history.append(self.right_fit)
         
@@ -142,9 +147,12 @@ class SlidingWindowSearch:
         self.left_lane_inds = np.concatenate(self.left_lane_inds)
         self.right_lane_inds = np.concatenate(self.right_lane_inds)
         
+        # fit polynomial and check if left/right lane are almost parallel
         if self.fit_polynomial() and self.almost_parallel(self.left_fit, self.right_fit):
+            # compute mean coefficients for polynomials of left and right lane ...
             a = 0.5 * (self.left_fit[0] + self.right_fit[0])
             b = 0.5 * (self.left_fit[1] + self.right_fit[1])
+            # ... use them to make lanes "more parallel"
             self.left_fit[0] = 0.5 * (self.left_fit[0] + a)
             self.left_fit[1] = 0.5 * (self.left_fit[1] + b)
             self.right_fit[0] = 0.5 * (self.right_fit[0] + a)
@@ -152,10 +160,8 @@ class SlidingWindowSearch:
             self.append_history()
             self.state = 'initial_fit'
 
-    def sliding_window_search(self):
-        # Assume you now have a new warped binary image 
-        # from the next frame of video (also called "binary_warped")
-        # It's now much easier to find line pixels!
+    def successive_lane_search(self):
+        # search for lane pixels using the last fit
         self.init_nonzero()
         self.left_lane_inds = ((self.nonzerox > (self.left_fit[0]*(self.nonzeroy**2) + self.left_fit[1]*self.nonzeroy + self.left_fit[2] - self.margin))
                           & (self.nonzerox < (self.left_fit[0]*(self.nonzeroy**2) + self.left_fit[1]*self.nonzeroy + self.left_fit[2] + self.margin))) 
@@ -166,10 +172,15 @@ class SlidingWindowSearch:
         last_left_fit = self.left_fit
         last_right_fit = self.right_fit
         
+        # fit polynomial and check if:
+        # * new left and right lane are almost parallel
+        # * last and new left lane are almost parallel
+        # * last and new right lane are almost parallel
         if self.fit_polynomial() and self.almost_parallel(self.left_fit, self.right_fit) and self.almost_parallel(last_left_fit, self.left_fit) and self.almost_parallel(last_right_fit, self.right_fit):
             self.append_history()
             self.state = 'successive_fit'
         else:
+            # skip this frame
             self.left_fit_history.popleft()
             self.right_fit_history.popleft()
             if len(self.left_fit_history) == 0:
@@ -192,6 +203,7 @@ class SlidingWindowSearch:
         out_img[self.nonzeroy[self.left_lane_inds], self.nonzerox[self.left_lane_inds]] = [255, 0, 0]
         out_img[self.nonzeroy[self.right_lane_inds], self.nonzerox[self.right_lane_inds]] = [0, 0, 255]
         if draw_lines:
+            # visualize the sliding windows/ search area
             if self.state == 'initial_fit':
                 for window in self.sliding_windows:
                     cv2.rectangle(out_img,(window[0], window[1]), (window[2], window[3]), (0,255,0), 2)
@@ -212,6 +224,7 @@ class SlidingWindowSearch:
                 out_img = cv2.addWeighted(out_img, 1, window_img, 0.3, 0)
         return out_img
         
+    # get a lane overlay image (lane area with fitted left/right lane pixels) and computed characteristics (left/right curvature, offset from center)
     def get_lanes(self):
         if self.state == 'no_fit':
             return None
@@ -223,7 +236,7 @@ class SlidingWindowSearch:
         lane_pixels = self.visualize_fit(False)
         lane_area = np.zeros_like(lane_pixels)
         cv2.fillPoly(lane_area, np.int_([lane_pts]), (0, 255, 0))
-        lane_overlay = cv2.addWeighted(lane_pixels, 0.5, lane_area, 0.5, 0)
+        lane_overlay = cv2.addWeighted(lane_pixels, 1, lane_area, 1, 0)
         
         left_curvature, right_curvature, offset = self.get_curvature_offset(ploty, left_fitx, right_fitx)
         
@@ -253,38 +266,40 @@ class SlidingWindowSearch:
         return left_curv_m, right_curve_m, x_offset_m
     
     def filter_fit(self):
+        # filter the current fit using mean of history
         np_left_hist = np.array(self.left_fit_history)
         np_right_hist = np.array(self.right_fit_history)
         self.left_fit = np.mean(np_left_hist, axis=0)
         self.right_fit = np.mean(np_right_hist, axis=0)
     
+    # process the given image, return lane overlay and characteristics (left/right curvature, offset from center)
     def __call__(self, binary_warped):
         self.binary_warped = binary_warped
         if self.state == 'no_fit':
             self.initial_sliding_window_search()
         else:
-            self.sliding_window_search()
+            self.successive_lane_search()
         if self.state != 'no_fit':
             self.filter_fit()
         return self.get_lanes()
 
 if __name__ == '__main__':
+    # Test lane searcher class on a test image
     # Read in a thresholded image
-    img = cv2.imread('test_images/test4.jpg')
-    pw = PerspectiveWarper(src, dst)
-    binary = get_potential_lane_pixels(img)
-    #plt.imshow(binary, cmap='gray')
-    #plt.show()
+    img = cv2.imread('test_images/test1.jpg')
+    undistorter = Undistort()
+    undistorted = undistorter(img)
+    pw = PerspectiveWarper(warp_src, warp_dst)
+    binary = get_potential_lane_pixels(undistorted)
     warped = pw.transform(binary)
-    #plt.imshow(warped, cmap='gray')
-    #plt.show()
     
-    lane_searcher = SlidingWindowSearch()
+    lane_searcher = LaneSearcher()
     lane_searcher(warped)
     out_img = lane_searcher.visualize_fit()
     plt.imshow(out_img)
-    #plt.plot(left_fitx, ploty, color='yellow')
-    #plt.plot(right_fitx, ploty, color='yellow')
+    ploty, left_fitx, right_fitx = lane_searcher.get_fitted_pixels()
+    plt.plot(left_fitx, ploty, color='yellow')
+    plt.plot(right_fitx, ploty, color='yellow')
     plt.xlim(0, 1280)
-    plt.ylim(720, 0)
+    plt.ylim(scale_y_warped * 720, 0)
     plt.show()
