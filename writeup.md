@@ -22,6 +22,7 @@ The goals / steps of this project are the following:
 [image3]: ./test_images/test1.jpg "Straight lines input image"
 [image4]: ./output_images/undistorted.jpg "Undistorted"
 [image5]: ./output_images/lane_overlay.jpg "Undistorted image with lane overlay"
+[image6]: ./output_images/binary.jpg "Binary image (potential lane pixels)"
 [image9]: ./output_images/straight_lines1_srcpoints.jpg "Image with source points"
 [image10]: ./output_images/straight_lines1_warped.jpg "Warped image with source points"
 [image11]: ./output_images/lane_fit.png "Lane pixels with sliding windows and polynomial fit"
@@ -67,14 +68,14 @@ The pipeline steps are demonstrated using the following input image:
 #### 1. Example of a distortion-corrected image.
 
 Applying the distortion correction as describe before, the resulting image looks like this:
-![alt text][image3]
+![alt text][image4]
 
 #### 2. Creating binary image using color and gradient thresholds
 
 In [find_lane_lines.py]("./find_lane_lines.py"), function get_potential_lane_pixels(), I'm first converting the image to HLS color space. Then I apply color and gradient thresholds to the L and S channel and combine the resulting four binary images.
 For the test image, this is the result:
 
-![alt text][image4]
+![alt text][image6]
 
 #### 3. Perspective transform
 
